@@ -33,12 +33,10 @@ const Notes = ({ notes = [], setNotes = () => {} }) => {
 
   // Drag handling
   const handleDragStart = (id, e) => {
-    e.preventDefault(); // prevent text selection
+    e.preventDefault();
 
     const noteRef = noteRefs.current[id].current;
     const rect = noteRef.getBoundingClientRect();
-
-    console.log(rect);
 
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
@@ -47,15 +45,18 @@ const Notes = ({ notes = [], setNotes = () => {} }) => {
       const newX = e.clientX - offsetX;
       const newY = e.clientY - offsetY;
 
+      // Move note visually
       noteRef.style.left = `${newX}px`;
       noteRef.style.top = `${newY}px`;
+
+      // Check overlap while dragging
+      handleForOverlap(id, newX, newY);
     };
 
     const handleMouseUp = (e) => {
       const newX = e.clientX - offsetX;
       const newY = e.clientY - offsetY;
 
-      // Update note position in state & localStorage
       const updatedNotes = notes.map((note) =>
         note.id === id ? { ...note, position: { x: newX, y: newY } } : note
       );
@@ -64,6 +65,36 @@ const Notes = ({ notes = [], setNotes = () => {} }) => {
 
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
+    };
+
+    // 🔥 New function: Detect overlap
+    const handleForOverlap = (draggedId, x, y) => {
+      const draggedEl = noteRefs.current[draggedId].current;
+      const draggedRect = draggedEl.getBoundingClientRect();
+
+      notes.forEach((note) => {
+        if (note.id === draggedId) return; // skip itself
+
+        const otherEl = noteRefs.current[note.id]?.current;
+        if (!otherEl) return;
+
+        const otherRect = otherEl.getBoundingClientRect();
+
+        const isOverlapping =
+          draggedRect.left < otherRect.right &&
+          draggedRect.right > otherRect.left &&
+          draggedRect.top < otherRect.bottom &&
+          draggedRect.bottom > otherRect.top;
+
+        if (isOverlapping) {
+          // Example effect: highlight overlap
+          otherEl.style.border = "2px solid red";
+          draggedEl.style.border = "2px solid red";
+        } else {
+          otherEl.style.border = "1px solid black";
+          draggedEl.style.border = "1px solid black";
+        }
+      });
     };
 
     window.addEventListener("mousemove", handleMouseMove);
